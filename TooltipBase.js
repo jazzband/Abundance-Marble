@@ -1,219 +1,331 @@
+import core from 'metal';
 import dom from 'metal-dom';
-import TooltipBase from '../src/TooltipBase';
+import {Align} from 'metal-position';
+import Component from 'metal-component';
+import {EventHandler} from 'metal-events';
 
-describe('TooltipBase', () => {
-  var tooltip;
+/**
+ * The base class to be shared between components that have tooltip behavior.
+ * This helps decouple this behavior logic from the UI, which may be different
+ * between components. The Tooltip component itself extends from this, as does
+ * the crystal Popover component, which can be accessed at metal/crystal-popover.
+ */
+class TooltipBase extends Component {
+  /**
+   * @inheritDoc
+   */
+  attached() {
+    this.align();
+    this.syncTriggerEvents(this.triggerEvents);
+  }
 
-  afterEach(() => {
-    if (tooltip) {
-      tooltip.dispose();
+  /**
+   * @inheritDoc
+   */
+  created() {
+    this.currentAlignElement = this.alignElement;
+    this.eventHandler_ = new EventHandler();
+  }
+
+  /**
+   * @inheritDoc
+   */
+  detached() {
+    this.eventHandler_.removeAllListeners();
+  }
+
+  /**
+   * @inheritDoc
+   */
+  disposeInternal() {
+    super.disposeInternal();
+    clearTimeout(this.delay_);
+  }
+
+  /**
+   * Aligns the tooltip with the best region around alignElement. The best
+   * region is defined by clockwise rotation starting from the specified
+   * `position`. The element is always aligned in the middle of alignElement
+   * axis.
+   * @param {Element=} opt_alignElement Optional element to align with.
+   */
+  align(opt_alignElement) {
+    this.syncCurrentAlignElement(opt_alignElement || this.currentAlignElement);
+  }
+
+  /**
+   * @param {!function()} fn
+   * @param {number} delay
+   * @private
+   */
+  callAsync_(fn, delay) {
+    clearTimeout(this.delay_);
+    this.delay_ = setTimeout(fn.bind(this), delay);
+  }
+
+  /**
+   * Handles hide event triggered by `events`.
+   * @param {!Event} event
+   * @protected
+   */
+  handleHide(event) {
+    const delegateTarget = event.delegateTarget;
+    const interactingWithDifferentTarget =
+      delegateTarget && delegateTarget !== this.currentAlignElement;
+    this.callAsync_(() => {
+      if (this.locked_) {
+        return;
+      }
+      if (interactingWithDifferentTarget) {
+        this.currentAlignElement = delegateTarget;
+      } else {
+        this.visible = false;
+        this.syncVisible(false);
+      }
+    }, this.delay[1]);
+  }
+
+  /**
+   * Handles show event triggered by `events`.
+   * @param {!Event} event
+   * @protected
+   */
+  handleShow(event) {
+    const delegateTarget = event.delegateTarget;
+    super.syncVisible(true);
+    this.callAsync_(() => {
+      this.currentAlignElement = delegateTarget;
+      this.visible = true;
+    }, this.delay[0]);
+  }
+
+  /**
+   * Handles toggle event triggered by `events`.
+   * @param {!Event} event
+   * @protected
+   */
+  handleToggle(event) {
+    if (this.visible) {
+      this.handleHide(event);
+    } else {
+      this.handleShow(event);
     }
-  });
+  }
 
-  it('should show tooltip on mouseover by a selector after a delay', (done) => {
-    dom.enterDocument('<div id="tooltipTrigger1">trigger</div>');
-    var trigger = dom.toElement('#tooltipTrigger1');
+  /**
+   * Locks tooltip visibility.
+   * @param {!Event} event
+   */
+  lock() {
+    this.locked_ = true;
+  }
 
-    tooltip = new TooltipBase({
-      delay: [0, 0],
-      selector: '#tooltipTrigger1',
-      visible: false
-    });
-    expect(!tooltip.visible).toBeTruthy();
-    dom.triggerEvent(trigger, 'mouseover');
-    setTimeout(() => {
-      expect(tooltip.visible).toBeTruthy();
-      expect(trigger).toBe(tooltip.currentAlignElement);
-      dom.exitDocument(trigger);
-      done();
-    }, 25);
-  });
+  /**
+   * Unlocks tooltip visibility.
+   * @param {!Event} event
+   */
+  unlock(event) {
+    this.locked_ = false;
+    this.handleHide(event);
+  }
 
-  it('should hide tooltip on mouseout by a selector after a delay', (done) => {
-    dom.enterDocument('<div id="tooltipTrigger2">trigger</div>');
-    var trigger = dom.toElement('#tooltipTrigger2');
+  /**
+   * Synchronizes the value of the `currentAlignElement` internal state
+   * with the `alignElement`.
+   * @param {Element} alignElement
+   */
+  syncAlignElement(alignElement) {
+    this.currentAlignElement = alignElement;
+  }
 
-    tooltip = new TooltipBase({
-      delay: [0, 0],
-      selector: '#tooltipTrigger2',
-      visible: true,
-      alignElement: trigger
-    });
-    dom.triggerEvent(trigger, 'mouseout');
-    setTimeout(() => {
-      expect(!tooltip.visible).toBeTruthy();
-      dom.exitDocument(trigger);
-      done();
-    }, 25);
-  });
+  /**
+   * State synchronization logic for `currentAlignElement`.
+   * @param {Element} alignElement
+   * @param {Element} prevAlignElement
+   */
+  syncCurrentAlignElement(alignElement, prevAlignElement) {
+    if (prevAlignElement) {
+      alignElement.removeAttribute('aria-describedby');
+    }
+    if (alignElement) {
+      if (!this.title) {
+        const dataTitle = alignElement.getAttribute('data-title');
+        if (dataTitle) {
+          this.title = dataTitle;
+        }
+      }
 
-  it('should toggle tooltip on click by a selector after a delay', (done) => {
-    dom.enterDocument('<div id="tooltipTrigger3">trigger</div>');
-    var trigger = dom.toElement('#tooltipTrigger3');
-
-    tooltip = new TooltipBase({
-      delay: [0, 0],
-      triggerEvents: ['click', 'click'],
-      selector: '#tooltipTrigger3',
-      visible: false
-    });
-    dom.triggerEvent(trigger, 'click');
-    setTimeout(() => {
-      expect(tooltip.visible).toBeTruthy();
-      dom.triggerEvent(trigger, 'click');
-      setTimeout(() => {
-        expect(!tooltip.visible).toBeTruthy();
-        dom.exitDocument(trigger);
-        done();
-      }, 25);
-    }, 25);
-  });
-
-  it('should prevent tooltip to hide when mouseenter tooltip area', (done) => {
-    dom.enterDocument('<div id="tooltipTrigger4">trigger</div>');
-    var trigger = dom.toElement('#tooltipTrigger4');
-
-    tooltip = new TooltipBase({
-      delay: [0, 0],
-      selector: '#tooltipTrigger4',
-      visible: false
-    });
-    dom.triggerEvent(trigger, 'mouseover');
-    setTimeout(() => {
-      expect(tooltip.visible).toBeTruthy();
-      dom.triggerEvent(trigger, 'mouseout');
-      dom.triggerEvent(tooltip.element, 'mouseenter');
-      setTimeout(() => {
-        expect(tooltip.visible).toBeTruthy();
-        dom.triggerEvent(tooltip.element, 'mouseleave');
+      if (this.inDocument) {
         setTimeout(() => {
-          expect(!tooltip.visible).toBeTruthy();
-          dom.exitDocument(trigger);
-          done();
-        }, 25);
-      }, 25);
-    }, 25);
-  });
+          this.alignedPosition = TooltipBase.Align.align(
+            this.element,
+            alignElement,
+            this.position
+          );
+        }, 10);
+      }
+    }
+  }
 
-  it('should set alignedPosition equal to position if well aligned to trigger', (done) => {
-    dom.enterDocument('<div id="trigger">trigger</div>');
-    var trigger = dom.toElement('#trigger');
+  /**
+   * State synchronization logic for `position`.
+   */
+  syncPosition() {
+    this.align();
+  }
 
-    tooltip = new TooltipBase({
-      position: TooltipBase.Align.Bottom,
-      selector: '#trigger'
-    });
-    dom.triggerEvent(trigger, 'mouseover');
+  /**
+   * State synchronization logic for `selector`.
+   */
+  syncSelector() {
+    this.syncTriggerEvents(this.triggerEvents);
+  }
 
-    tooltip.once('stateSynced', () => {
-      tooltip.once('stateSynced', () => {
-        expect(TooltipBase.Align.Bottom).toBe(tooltip.alignedPosition);
-        dom.exitDocument(trigger);
-        done();
-      });
-    });
-  });
+  /**
+   * State synchronization logic for `triggerEvents`.
+   * @param {!Array<string>} triggerEvents
+   */
+  syncTriggerEvents(triggerEvents) {
+    if (!this.inDocument) {
+      return;
+    }
+    this.eventHandler_.removeAllListeners();
+    const selector = this.selector;
+    if (!selector) {
+      return;
+    }
 
-  it('should set alignedPosition when there is title already set', (done) => {
-    dom.enterDocument('<div id="trigger">trigger</div>');
-    var trigger = dom.toElement('#trigger');
+    this.eventHandler_.add(
+      this.on('mouseenter', this.lock),
+      this.on('mouseleave', this.unlock)
+    );
 
-    tooltip = new TooltipBase({
-      position: TooltipBase.Align.Bottom,
-      selector: '#trigger',
-      title: 'tooltip title',
-    });
-    dom.triggerEvent(trigger, 'mouseover');
+    if (triggerEvents[0] === triggerEvents[1]) {
+      this.eventHandler_.add(
+        dom.delegate(
+          document,
+          triggerEvents[0],
+          selector,
+          this.handleToggle.bind(this)
+        )
+      );
+    } else {
+      this.eventHandler_.add(
+        dom.delegate(
+          document,
+          triggerEvents[0],
+          selector,
+          this.handleShow.bind(this)
+        ),
+        dom.delegate(
+          document,
+          triggerEvents[1],
+          selector,
+          this.handleHide.bind(this)
+        )
+      );
+    }
+  }
 
-    tooltip.once('stateSynced', () => {
-      tooltip.once('stateSynced', () => {
-        expect(TooltipBase.Align.Bottom).toBe(tooltip.alignedPosition);
-        expect(tooltip.title).toStrictEqual('tooltip title');
-        dom.exitDocument(trigger);
-        done();
-      });
-    });
-  });
+  /**
+   * State synchronization logic for `visible`. Realigns the tooltip.
+   */
+  syncVisible() {
+    this.align();
+  }
+}
 
-  it.skip('should set alignedPosition to the best found position that aligns well to trigger', (done) => {
-    dom.enterDocument('<div id="trigger" style="width: 20px; height: 20px; position: absolute;">trigger</div>');
-    var trigger = dom.toElement('#trigger');
+/**
+ * @inheritDoc
+ * @see `Align` class.
+ * @static
+ */
+TooltipBase.Align = Align;
 
-    tooltip = new TooltipBase({
-      position: TooltipBase.Align.Top,
-      selector: '#trigger'
-    });
-    tooltip.element.style.width = '100px';
-    tooltip.element.style.height = '30px';
-    dom.triggerEvent(trigger, 'mouseover');
+/**
+ * TooltipBase state definition.
+ * @type {!Object}
+ * @static
+ */
+TooltipBase.STATE = {
+  /**
+   * The current position of the tooltip after being aligned via `Align.align`.
+   * @type {number}
+   */
+  alignedPosition: {
+    validator: TooltipBase.Align.isValidPosition,
+  },
 
-    tooltip.once('stateSynced', () => {
-      tooltip.once('stateSynced', () => {
-        expect(TooltipBase.Align.Right).toBe(tooltip.alignedPosition);
-        dom.exitDocument(trigger);
-        done();
-      });
-    });
-  });
+  /**
+   * Element to align tooltip with.
+   * @type {Element}
+   */
+  alignElement: {
+    setter: dom.toElement,
+  },
 
-  it('should remove listeners when dettached', (done) => {
-    dom.enterDocument('<div id="tooltipTrigger5">trigger</div>');
-    var trigger = dom.toElement('#tooltipTrigger5');
+  /**
+   * The current element aligned tooltip with.
+   * @type {Element}
+   */
+  currentAlignElement: {
+    internal: true,
+    setter: dom.toElement,
+  },
 
-    tooltip = new TooltipBase({
-      delay: [0, 0],
-      selector: '#tooltipTrigger5',
-      visible: false
-    });
-    tooltip.detach();
-    dom.triggerEvent(trigger, 'mouseover');
-    setTimeout(() => {
-      expect(!tooltip.visible).toBeTruthy();
-      dom.exitDocument(trigger);
-      done();
-    }, 25);
-  });
+  /**
+   * Delay showing and hiding the tooltip (ms).
+   * @type {!Array<number>}
+   * @default [ 500, 250 ]
+   */
+  delay: {
+    validator: Array.isArray,
+    value: [500, 250],
+  },
 
-  it('should stick open if only changes alignElement', (done) => {
-    dom.enterDocument('<div class="trigger" id="tooltipTrigger6">trigger</div>');
-    dom.enterDocument('<div class="trigger" id="tooltipTrigger7">trigger</div>');
-    var trigger = dom.toElement('#tooltipTrigger6');
-    var triggerOther = dom.toElement('#tooltipTrigger7');
+  /**
+   * Trigger events used to bind handlers to show and hide tooltip.
+   * @type {!Array<string>}
+   * @default ['mouseenter', 'mouseleave']
+   */
+  triggerEvents: {
+    validator: Array.isArray,
+    value: ['mouseenter', 'mouseleave'],
+  },
 
-    tooltip = new TooltipBase({
-      delay: [0, 0],
-      triggerEvents: ['click', 'click'],
-      selector: '.trigger'
-    });
-    dom.triggerEvent(trigger, 'click');
-    setTimeout(() => {
-      dom.triggerEvent(trigger, 'click');
-      dom.triggerEvent(triggerOther, 'click');
-      setTimeout(() => {
-        expect(tooltip.visible).toBeTruthy();
-        expect(triggerOther).toBe(tooltip.currentAlignElement);
-        dom.exitDocument(trigger);
-        dom.exitDocument(triggerOther);
-        done();
-      }, 25);
-    }, 25);
-  });
+  /**
+   * If a selector is provided, tooltip objects will be delegated to the
+   * specified targets by setting the `alignElement`.
+   * @type {?string}
+   */
+  selector: {
+    validator: core.isString,
+  },
 
-  it('should not throw error if showing tooltip while component is disposed', (done) => {
-    dom.enterDocument('<div id="tooltipTrigger1">trigger</div>');
-    var trigger = dom.toElement('#tooltipTrigger1');
+  /**
+   * The position to try alignment. If not possible the best position will be
+   * found.
+   * @type {number}
+   * @default Align.Bottom
+   */
+  position: {
+    validator: TooltipBase.Align.isValidPosition,
+    value: TooltipBase.Align.Bottom,
+  },
 
-    tooltip = new TooltipBase({
-      delay: [0, 0],
-      selector: '#tooltipTrigger1',
-      visible: false
-    });
-    dom.triggerEvent(trigger, 'mouseover');
-    tooltip.dispose();
+  /**
+   * Content to be placed inside tooltip.
+   * @type {string}
+   */
+  title: {},
+};
 
-    setTimeout(() => {
-      dom.exitDocument(trigger);
-      done();
-    }, 25);
-  });
-});
+/**
+ * CSS classes used for each align position.
+ * @type {!Array}
+ * @static
+ */
+TooltipBase.PositionClasses = ['top', 'right', 'bottom', 'left'];
+
+export {TooltipBase};
+export default TooltipBase;

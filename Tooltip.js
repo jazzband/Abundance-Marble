@@ -1,87 +1,97 @@
 import dom from 'metal-dom';
-import Tooltip from '../src/Tooltip';
+import Soy from 'metal-soy';
+import TooltipBase from './TooltipBase';
 import xssFilters from 'xss-filters';
 
-describe('Tooltip', () => {
-  let tooltip;
+import templates from './Tooltip.soy.js';
 
-  afterEach(() => {
-    if (tooltip) {
-      tooltip.dispose();
-      dom.exitDocument(dom.toElement('#tooltipTrigger1'));
+const REGEX_ESCAPE = /__escape([\s\S]*?)escape__/gim;
+
+/**
+ * Tooltip component.
+ */
+class Tooltip extends TooltipBase {
+  /**
+   * @inheritDoc
+   */
+  syncVisible(visible) {
+    super.syncVisible(visible);
+
+    setTimeout(() => {
+      if (visible) {
+        dom.addClasses(this.element, 'showing');
+      } else {
+        dom.removeClasses(this.element, 'showing');
+      }
+    }, 20);
+  }
+
+  /**
+   * @inheritDoc
+   */
+  syncCurrentAlignElement(alignElement, prevAlignElement) {
+    if (alignElement) {
+      const dataTitle = alignElement.getAttribute('data-title');
+      if (dataTitle) {
+        let escapeTitle = true;
+        if (alignElement.getAttribute('data-escape-title') === 'false') {
+          escapeTitle = false;
+        }
+
+        this.title = escapeTitle ? this.escape_(dataTitle) : dataTitle;
+      } else {
+        this.title = '';
+      }
+
+      const dataDescription = alignElement.getAttribute('data-description');
+      if (dataDescription) {
+        let escapeDescription = true;
+        if (alignElement.getAttribute('data-escape-description') === 'false') {
+          escapeDescription = false;
+        }
+        this.description = escapeDescription
+          ? this.escape_(dataDescription)
+          : dataDescription;
+      } else {
+        this.description = '';
+      }
     }
-  });
+    super.syncCurrentAlignElement(alignElement, prevAlignElement);
+  }
 
-  it('should escape html content by default', (done) => {
-    const title = 'title';
-    const description = 'description';
+  /**
+   * Escapes content to be shown in HTML data.
+   * @param {!string} content Data to be escaped
+   * @return {string} Returns the escaped data
+   */
+  escape_(content) {
+    let buffer = '';
+    let match = REGEX_ESCAPE.exec(content);
 
-    const titleInAttr = xssFilters.inDoubleQuotedAttr(`"><img src=x onerror=alert('${title}')>`);
-    const descriptionInAttr = xssFilters.inDoubleQuotedAttr(`"><img src=x onerror=alert('${description}')>`);
-    const titleInData = xssFilters.inHTMLData(`"><img src=x onerror=alert('${title}')>`);
-    const descriptionInData = xssFilters.inHTMLData(`"><img src=x onerror=alert('${description}')>`);
+    if (match === null) {
+      return xssFilters.inHTMLData(content);
+    } else {
+      let lastIndex = 0;
+      do {
+        buffer += content.substring(lastIndex, match.index);
+        if (match.index === REGEX_ESCAPE.lastIndex) {
+          REGEX_ESCAPE.lastIndex++;
+        }
 
-    dom.enterDocument(`<div id="tooltipTrigger1" data-title="${titleInAttr}" data-description="${descriptionInAttr}">trigger</div>`);
-    let trigger = dom.toElement('#tooltipTrigger1');
+        buffer += xssFilters.inHTMLData(match[1]);
+        lastIndex = REGEX_ESCAPE.lastIndex;
+      } while ((match = REGEX_ESCAPE.exec(content)) !== null);
 
-    tooltip = new Tooltip({
-      delay: [0, 0],
-      selector: '#tooltipTrigger1',
-      visible: false,
-    });
-    dom.triggerEvent(trigger, 'mouseover');
-    setTimeout(() => {
-      expect(tooltip.title).toEqual(titleInData);
-      expect(tooltip.description).toEqual(descriptionInData);
-      done();
-    }, 25);
-  });
+      buffer += content.substring(lastIndex);
+    }
 
-  it('should escape parts of title and description wrapped in __escape...escape__', (done) => {
-    const title = 'title';
-    const description = 'description';
+    return buffer;
+  }
+}
 
-    const titleInAttr = `begin__escape` + xssFilters.inDoubleQuotedAttr(`"><img src=x onerror=alert('${title}')>`) + `escape__<br>`;
-    const descriptionInAttr = `begin__escape` + xssFilters.inDoubleQuotedAttr(`"><img src=x onerror=alert('${description}')>`) + `escape__<br>`;
-    const titleInData = `begin` + xssFilters.inHTMLData(`"><img src=x onerror=alert('${title}')>`) + `<br>`;
-    const descriptionInData = `begin` + xssFilters.inHTMLData(`"><img src=x onerror=alert('${description}')>`) + `<br>`;
+Soy.register(Tooltip, templates);
 
-    dom.enterDocument(`<div id="tooltipTrigger1" data-title="${titleInAttr}" data-description="${descriptionInAttr}">trigger</div>`);
-    let trigger = dom.toElement('#tooltipTrigger1');
+Tooltip.Align = TooltipBase.Align;
 
-    tooltip = new Tooltip({
-      delay: [0, 0],
-      selector: '#tooltipTrigger1',
-      visible: false,
-    });
-    dom.triggerEvent(trigger, 'mouseover');
-    setTimeout(() => {
-      expect(tooltip.title).toEqual(titleInData);
-      expect(tooltip.description).toEqual(descriptionInData);
-      done();
-    }, 25);
-  });
-
-  it('should prevent escaping title and description when escaping is disabled', (done) => {
-    const title = `"><img src=x onerror=alert('title')>`;
-    const description = `"><img src=x onerror=alert('description')>`;
-
-    const titleInAttr = xssFilters.inDoubleQuotedAttr(title);
-    const descriptionInAttr = xssFilters.inDoubleQuotedAttr(description);
-
-    dom.enterDocument(`<div id="tooltipTrigger1" data-escape-title="false" data-title="${titleInAttr}" data-escape-description="false" data-description="${descriptionInAttr}">trigger</div>`);
-    let trigger = dom.toElement('#tooltipTrigger1');
-
-    tooltip = new Tooltip({
-      delay: [0, 0],
-      selector: '#tooltipTrigger1',
-      visible: false,
-    });
-    dom.triggerEvent(trigger, 'mouseover');
-    setTimeout(() => {
-      expect(tooltip.title).toEqual(title);
-      expect(tooltip.description).toEqual(description);
-      done();
-    }, 25);
-  });
-});
+export {Tooltip, TooltipBase};
+export default Tooltip;
