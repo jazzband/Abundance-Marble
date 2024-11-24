@@ -2,138 +2,87 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Demo: Topbar</title>
+  <title>Demo: Tooltip</title>
 
-  <link rel="stylesheet" href="../../marble/build/fonts/galano/galano.css">
-  <link rel="stylesheet" href="../../marble/build/fonts/icon-12/icon-12.css">
-  <link rel="stylesheet" href="../../marble/build/fonts/icon-16/icon-16.css">
   <link rel="stylesheet" href="../../marble/build/marble.css">
+  <link rel="stylesheet" href="../../marble/build/fonts/galano/galano.css">
 
-  <style>
-    h1 {
-      margin: 48px 20px 24px;
+  <script src="../build/globals/marble-tooltip.js"></script>
+
+  <style type="text/css">
+    section{
+      margin-bottom: 36px;
+    }
+    form label {
+      left: 0;
+      top: 0;
+      margin-right: 24px;
+      cursor: pointer;
     }
 
-    section {
-      margin: 20px;
-    }
-
-    .topbar.topbar-light {
-      box-shadow: 0px 2px 8px rgba(12, 14, 26, 0.1);
+    form label input[type="radio"] {
+      margin: 0 12px 0 0;
     }
   </style>
-
-  <script src="../build/globals/marble-topbar.js"></script>
 </head>
 <body>
-  <section>
-    <h2>Choose a style</h2>
-    <ul class="radio-group radio-group-inline">
-      <li>
-        <input id="style-default" name="style" value="default" type="radio" onclick="changeStyle(this)" checked>
-        <label for="style-default">Default</label>
-      </li>
-      <li>
-        <input id="style-light" name="style" value="topbar-light" type="radio" onclick="changeStyle(this)">
-        <label for="style-light">Light</label>
-      </li>
-    </ul>
-  </section>
 
-  <h1>Topbar: Logo Text</h1>
-  <div id="logo-text"></div>
+  <div class="container-hybrid-half">
 
-  <h1>Topbar: Logo Icon</h1>
-  <div id="logo-icon"></div>
+    <div class="content-header">
+      <h1 class="header-title">Tooltip</h1>
+    </div>
 
-  <h1>Topbar: Logo Icon + Text</h1>
-  <div id="logo-icon-text"></div>
+    <div class="content-body">
+      <section>
+        <h2 class="content-body-subtitle">Choose a theme</h2>
+        <form name="myForm">
+          <label><input type="radio" name="myRadios" value="dark" checked onclick="changeTheme(this)" />dark</label>
+          <label><input type="radio" name="myRadios" value="light" onclick="changeTheme(this)" />light</label>
+        </form>
+      </section>
 
-  <h1>Topbar: Logo Image</h1>
-  <div id="logo-image"></div>
+      <section>
+        <h2 class="content-body-title">With Links</h2>
+        <button type="button" class="btn btn-sm show-tooltip" data-escape-title="false" data-escape-description="false" data-title="With Links" data-description="To make a project accessible via one or more non-WeDeploy domain names, you must update your domain's DNS records. &lt;a href=&quot;javascript:;&quot;&gt;Read the docs&lt;/a&gt; for more information.">With Links</button>
+      </section>
 
-  <h1>Topbar: Logo Image + Text</h1>
-  <div id="logo-image-text"></div>
+      <section>
+        <h2 class="content-body-title">Regular</h2>
+        <button type="button" class="btn btn-sm show-tooltip" data-title="Storage" data-description="Total storage for the realtime database.<br/>This does not include hosting or other features." data-escape-description="false">Regular</button>
+      </section>
 
-  <script>
-    const navigation = [
-      {
-        label: 'Apps',
-        href: '/apps',
-        selected: true
-      },
-      {
-        label: 'Blog',
-        href: '/blog'
-      },
-      {
-        label: 'Docs',
-        href: '/docs'
-      },
-      {
-        label: 'Log in',
-        href: '/login',
-        type: 'button'
-      },
-    ];
+      <section>
+        <h2 class="content-body-title">Larger Width Size</h2>
+        <button type="button" class="btn btn-sm show-tooltip" data-title="Lorem Ipsum Lorem Ipsum Lorem Ipsum Lorem Ipsum Lorem Ipsum Lorem Ipsum" data-description="Lorem Ipsum Lorem Ipsum Lorem Ipsum Lorem Ipsum Lorem Ipsum Lorem Ipsum Lorem Ipsum Lorem Ipsum Lorem Ipsum Lorem Ipsum Lorem Ipsum Lorem Ipsum Lorem Ipsum Lorem Ipsum Lorem Ipsum Lorem Ipsum">Larger Width Size</button>
+      </section>
 
-    // Topbars
+      <section>
+        <h2 class="content-body-title">Only Title</h2>
+        <button type="button" class="btn btn-sm show-tooltip" data-title="Only Title">Only Title</button>
+      </section>
 
-    const topbarLogoText = new metal.Topbar({
-      logo: {
-        text: 'Marble'
-      },
-      items: navigation
-    }, '#logo-text');
+      <section>
+        <h2 class="content-body-title">Only Description</h2>
+        <button type="button" class="btn btn-sm show-tooltip" data-description="Only Description">Only Description</button>
+      </section>
 
-    const topbarLogoIcon = new metal.Topbar({
-      logo: {
-        icon: 'icon-12-github'
-      },
-      items: navigation
-    }, '#logo-icon');
+    </div>
+  </div>
 
-    const topbarLogoIconText = new metal.Topbar({
-      logo: {
-        text: 'Marble',
-        icon: 'icon-12-github'
-      },
-      items: navigation
-    }, '#logo-icon-text');
+  <script type="text/javascript">
+    window.tooltip = new metal.Tooltip({
+      delay: [0, 0],
+      elementClasses: 'tooltip-dark',
+      selector: '.show-tooltip',
+      visible: false
+    });
 
-    const topbarLogoImage = new metal.Topbar({
-      logo: {
-        image: 'logo.svg'
-      },
-      items: navigation
-    }, '#logo-image');
-
-    const topbarLogoImageText = new metal.Topbar({
-      logo: {
-        text: 'Marble',
-        image: 'logo.svg'
-      },
-      items: navigation
-    }, '#logo-image-text');
-
-    // Styles
-
-    const topbars = [
-      topbarLogoText,
-      topbarLogoIcon, topbarLogoIconText,
-      topbarLogoImage, topbarLogoImageText
-    ];
-
-    function changeStyle(radio) {
-      if (radio.value === 'topbar-light') {
-        topbars.forEach((topbar) => {
-          topbar.style = radio.value;
-        });
+    function changeTheme(item) {
+      if(item.value === 'light') {
+        window.tooltip.elementClasses = 'tooltip-light';
       } else {
-        topbars.forEach((topbar) => {
-          topbar.style = '';
-        });
+        window.tooltip.elementClasses = 'tooltip-dark';
       }
     }
   </script>
