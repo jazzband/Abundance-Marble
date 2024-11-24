@@ -1,40 +1,21 @@
 {
+  "name": "marbleui.com",
+  "version": "0.0.2",
   "private": true,
+  "repository": "wedeploy/marbleui.com",
   "scripts": {
-    "start": "lerna bootstrap -- --no-optional --no-package-lock",
-    "publish": "lerna publish",
-    "build": "lerna run compile && lerna run build",
-    "compile": "lerna run compile",
-    "link": "lerna link",
-    "test": "lerna run soy && jest",
-    "format": "npm run prettier -- --write",
-    "prettier": "prettier-eslint packages/marble-*/src/*.js packages/marble-*/src/**/*.js"
+    "start": "electric"
   },
   "devDependencies": {
-    "babel-jest": "^23.0.1",
-    "babel-preset-metal": "^4.0.0",
-    "eslint": "^4.11.0",
-    "eslint-config-liferay": "^2.0.10",
-    "jest": "^23.1.0",
-    "lerna": "^2.5.1",
-    "metal-jest-serializer": "^2.0.0",
-    "prettier-eslint-cli": "^4.4.0",
-    "regenerator-runtime": "^0.11.0",
-    "sinon": "^6.0.0"
-  },
-  "jest": {
-    "testMatch": [
-      "**/test/*.js"
-    ],
-    "transformIgnorePatterns": [
-      "<rootDir>.*(node_modules)(?!.*marble.*).*$"
-    ],
-    "snapshotSerializers": [
-      "metal-jest-serializer"
-    ],
-    "resolver": "./jest-marble-lerna-resolver"
-  },
-  "workspaces": [
-    "packages/*"
-  ]
+    "electric-cli": "^2.2.0",
+    "electric-marble-components": "^2.0.0",
+    "marble": "^2.12.7",
+    "marble-dropdown": "^3.0.9",
+    "marble-input-matrix": "^2.1.16",
+    "marble-progress-bar": "^2.1.1",
+    "marble-select": "^2.1.10",
+    "marble-slider": "^2.2.1",
+    "marble-toast": "^2.2.0",
+    "metal-toggler": "^2.0.0"
+  }
 }

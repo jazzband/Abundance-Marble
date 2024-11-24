@@ -1,37 +1,69 @@
-# Marble [![Build Status](https://travis-ci.org/wedeploy/marble.svg?branch=master)](https://travis-ci.org/wedeploy/marble)
+# [marbleui.com](http://marbleui.com) [![Built with Electric](https://img.shields.io/badge/built%20with-electric-f3c302.svg?style=flat)](http://electricjs.com)
 
-> A set of UI components behind [Electric](https://electricjs.com) and [WeDeploy](https://wedeploy.com).
+> Contains the [marbleui.com](http://marbleui.com) static documentation page.
 
 ## Setup
 
-1. Install NodeJS >= [v6.11.0](http://nodejs.org/dist/v6.11.0/), if you don't have it yet.
+1. Make sure you have [node and npm](https://nodejs.org/en/download/) installed:
 
-2. Install global dependencies:
+```sh
+node -v && npm -v
+```
 
-  ```
-  [sudo] npm install -g yarn
-  ```
+2. Install our global dependencies:
 
-3. Install project dependencies:
+```sh
+[sudo] npm i -g electric-cli
+```
 
-  ```
-  yarn install
-  ```
+3. Install our local dependencies:
 
-4. Install dependencies for each package and link them together:
+```sh
+npm i
+```
 
-  ```
-  npm start
-  ```
+## Usage
 
-5. Run tests for all packages:
+### build
 
-  ```
-  npm test
-  ```
+* Builds the site and places file in dist directory.
 
-6. Publish packages:
+```
+electric build
+```
 
-  ```
-  npm run publish
-  ```
+### server
+
+* Starts up a local development server.
+
+```
+electric server
+```
+
+### watch
+
+* Watches for changes and triggers build.
+
+```
+electric watch
+```
+
+### run
+
+* Runs the `build`, `watch`, and `server` commands for quick development.
+
+```
+electric run
+```
+
+### deploy
+
+* Deploy to production (send build files to wedeploy branch):
+
+```
+electric deploy
+```
+
+## License
+
+[BSD License](https://github.com/wedeploy/wedeploy.com/blob/master/LICENSE.md) © Liferay, Inc.
