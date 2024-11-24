@@ -1,7 +1,7 @@
 const webpack = require('webpack');
 
 module.exports = {
-  entry: './src/Tooltip.js',
+  entry: './src/Toast.js',
   module: {
     rules: [{
       test: /\.js$/,
@@ -19,7 +19,7 @@ module.exports = {
   output: {
     library: 'metal',
     libraryTarget: 'this',
-    filename: './build/globals/marble-tooltip.js'
+    filename: './build/globals/marble-toast.js'
   },
   plugins: [
     new webpack.optimize.ModuleConcatenationPlugin()

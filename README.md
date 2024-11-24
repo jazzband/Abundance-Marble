@@ -1,6 +1,6 @@
-# marble-tooltip
+# marble-toast
 
-Marble's tooltip component.
+Marble's toast component.
 
 ## Setup
 
