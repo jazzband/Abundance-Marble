@@ -1,6 +1,6 @@
-# marble-topbar
+# marble-tooltip
 
-Marble's Topbar component
+Marble's tooltip component.
 
 ## Setup
 
