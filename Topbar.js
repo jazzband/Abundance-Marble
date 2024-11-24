@@ -1,111 +1,89 @@
-import Topbar from '../src/Topbar';
+import {isServerSide} from 'metal';
+import Component from 'metal-component';
+import Soy from 'metal-soy';
+import Toggler from 'metal-toggler';
+import {Config} from 'metal-state';
 
-let topbar;
+import templates from './Topbar.soy.js';
 
-describe('Topbar', () => {
-  afterEach(() => {
-    if (topbar) {
-      topbar.dispose();
+/**
+ * Topbar component.
+ */
+class Topbar extends Component {
+  attached() {
+    if (isServerSide()) {
+      return;
     }
-  });
 
-  it('should generate the default markup', () => {
-    topbar = new Topbar();
-
-    expect(topbar).toMatchSnapshot();
-  });
-
-  it('should render with an additional class', () => {
-    topbar = new Topbar({
-      style: 'topbar-light'
+    this.toggler = new Toggler({
+      content: '.topbar-list',
+      header: '.topbar-toggle',
+      expandedClasses: 'topbar-list-expanded'
     });
 
-    expect(topbar).toMatchSnapshot();
-  });
+    document.documentElement.classList.add('topbar-canvas');
 
-  it('should render a logo with href', () => {
-    topbar = new Topbar({
-      logo: {
-        href: '#'
-      }
+    this.toggler.on('headerExpanded', () => {
+      document.documentElement.classList.add('topbar-canvas-expanded');
     });
 
-    expect(topbar).toMatchSnapshot();
-  });
-
-  it('should render a logo with text', () => {
-    topbar = new Topbar({
-      logo: {
-        text: 'Marble'
-      }
+    this.toggler.on('headerCollapsed', () => {
+      document.documentElement.classList.remove('topbar-canvas-expanded');
     });
+  }
 
-    expect(topbar).toMatchSnapshot();
-  });
+  disposed() {
+    let toggler = this.toggler;
 
-  it('should render a logo with icon', () => {
-    topbar = new Topbar({
-      logo: {
-        icon: 'icon-12-github'
-      }
-    });
+    if (toggler) {
+      toggler.dispose();
+    }
+  }
+}
 
-    expect(topbar).toMatchSnapshot();
-  });
+/**
+ * State definition.
+ * @static
+ * @type {!Object}
+ */
+Topbar.STATE = {
+  /**
+   * Additional CSS classes to be added
+   * @type {!String}
+   * @default undefined
+   */
+  style: Config.string(),
 
-  it('should render a logo with icon and text', () => {
-    topbar = new Topbar({
-      logo: {
-        text: 'Marble',
-        icon: 'icon-12-github'
-      }
-    });
+  /**
+   * Defines how the logo should look like
+   * @type {?Object|undefined}
+   * @default undefined
+   */
+  logo: Config.shapeOf({
+    href: Config.string(),
+    icon: Config.string(),
+    image: Config.string(),
+    text: Config.string(),
+  }),
 
-    expect(topbar).toMatchSnapshot();
-  });
+  /**
+   * The list of menu items
+   * @type {?Array|undefined}
+   * @default undefined
+   */
+  items: Config.arrayOf(
+    Config.shapeOf({
+      href: Config.string(),
+      label: Config.string(),
+      selected: Config.bool(),
+      target: Config.string(),
+      type: Config.string(),
+      variant: Config.string(),
+    })
+  ).value([]),
+};
 
-  it('should render a logo with image', () => {
-    topbar = new Topbar({
-      logo: {
-        image: 'logo.svg'
-      }
-    });
+Soy.register(Topbar, templates);
 
-    expect(topbar).toMatchSnapshot();
-  });
-
-  it('should render a logo with image and text', () => {
-    topbar = new Topbar({
-      logo: {
-        text: 'Marble',
-        image: 'logo.svg'
-      }
-    });
-
-    expect(topbar).toMatchSnapshot();
-  });
-
-  it('should render a list of navigation items', () => {
-    topbar = new Topbar({
-      items: [
-        {
-          label: 'Apps',
-          href: '/apps',
-          selected: true
-        },
-        {
-          label: 'Blog',
-          href: '/blog',
-          target: '_blank'
-        },
-        {
-          label: 'Login',
-          href: '/login',
-          type: 'button'
-        }
-      ]
-    });
-
-    expect(topbar).toMatchSnapshot();
-  });
-});
+export {Topbar};
+export default Topbar;
